@@ -96,9 +96,9 @@ const CustomTendenciaTooltip = ({ active, payload, label }: any) => {
 
 
 export default function DashboardPage() {
-  const [dataInicio, setDataInicio] = useState('');
-  const [dataFim, setDataFim] = useState('');
-  const hasInitializedDates = useRef(false);
+  const [dataInicio, setDataInicio] = useState('2026-01-01');
+  const [dataFim, setDataFim] = useState('2026-09-30');
+  const activeRequestSeq = useRef(0);
   const [secao, setSecao] = useState('');
   const [situacoes, setSituacoes] = useState<string[]>(['TODOS']);
 
@@ -182,6 +182,10 @@ export default function DashboardPage() {
   }, []);
 
   const fetchDashboard = useCallback(() => {
+    if (dataInicio && dataInicio.length < 10) return;
+    if (dataFim && dataFim.length < 10) return;
+
+    const seq = ++activeRequestSeq.current;
     setLoading(true);
     setError(null);
     const params = new URLSearchParams();
@@ -196,15 +200,12 @@ export default function DashboardPage() {
         return r.json();
       })
       .then(d => {
+        if (seq !== activeRequestSeq.current) return;
         setData(d);
-        if (!hasInitializedDates.current) {
-          if (d.dataInicioSelecionada) setDataInicio(d.dataInicioSelecionada);
-          if (d.dataFimSelecionada) setDataFim(d.dataFimSelecionada);
-          hasInitializedDates.current = true;
-        }
         setLoading(false);
       })
       .catch(err => {
+        if (seq !== activeRequestSeq.current) return;
         console.error('Erro ao carregar dashboard:', err);
         setError('Não foi possível carregar os dados. Verifique a conexão e tente novamente.');
         setLoading(false);
@@ -216,10 +217,8 @@ export default function DashboardPage() {
   }, [fetchDashboard]);
 
   const handleLimparFiltros = () => {
-    const defaultInicio = data?.dataInicioSelecionada || data?.filtros?.dataInicio || '2026-01-01';
-    const defaultFim = data?.dataFimSelecionada || data?.filtros?.dataFim || '2026-09-30';
-    setDataInicio(defaultInicio);
-    setDataFim(defaultFim);
+    setDataInicio('2026-01-01');
+    setDataFim('2026-09-30');
     setSecao('');
     setSecaoQuery('');
     setSituacoes(['TODOS']);
@@ -287,7 +286,7 @@ export default function DashboardPage() {
               onChange={e => {
                 const val = e.target.value;
                 setDataInicio(val);
-                if (val && dataFim && val > dataFim) {
+                if (val && val.length === 10 && dataFim && val > dataFim) {
                   setDataFim(val);
                 }
               }}
@@ -304,7 +303,7 @@ export default function DashboardPage() {
               onChange={e => {
                 const val = e.target.value;
                 setDataFim(val);
-                if (val && dataInicio && val < dataInicio) {
+                if (val && val.length === 10 && dataInicio && val < dataInicio) {
                   setDataInicio(val);
                 }
               }}

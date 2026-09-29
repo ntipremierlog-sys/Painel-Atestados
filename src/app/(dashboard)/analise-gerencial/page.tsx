@@ -76,9 +76,9 @@ export default function AnaliseGerencialPage() {
   }, [cidSearchQuery]);
 
   // Filtros idênticos ao Dashboard
-  const [dataInicio, setDataInicio] = useState('');
-  const [dataFim, setDataFim] = useState('');
-  const hasInitializedDates = useRef(false);
+  const [dataInicio, setDataInicio] = useState('2026-01-01');
+  const [dataFim, setDataFim] = useState('2026-09-30');
+  const activeRequestSeq = useRef(0);
   const [secao, setSecao] = useState('');
   const [secaoQuery, setSecaoQuery] = useState('');
   const [showSecaoDropdown, setShowSecaoDropdown] = useState(false);
@@ -152,6 +152,11 @@ export default function AnaliseGerencialPage() {
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
 
   const loadData = useCallback(async () => {
+    // Não dispara requisição com data incompleta (ex: usuário digitando pelo teclado)
+    if (dataInicio && dataInicio.length < 10) return;
+    if (dataFim && dataFim.length < 10) return;
+
+    const seq = ++activeRequestSeq.current;
     setLoading(true);
     const params = new URLSearchParams();
     if (dataInicio) params.append('dataInicio', dataInicio);
@@ -163,17 +168,11 @@ export default function AnaliseGerencialPage() {
     try {
       const res = await fetch(`/api/analise-gerencial?${params.toString()}`);
       const json = await res.json();
-      setData(json);
 
-      if (!hasInitializedDates.current) {
-        if (json.filtrosAplicados?.dataInicio) {
-          setDataInicio(json.filtrosAplicados.dataInicio);
-        }
-        if (json.filtrosAplicados?.dataFim) {
-          setDataFim(json.filtrosAplicados.dataFim);
-        }
-        hasInitializedDates.current = true;
-      }
+      // Se uma requisição mais recente já foi disparada, DESCARTA esta resposta obsoleta!
+      if (seq !== activeRequestSeq.current) return;
+
+      setData(json);
 
       if (json.resumo) {
         const initialOpen: Record<string, boolean> = {};
@@ -185,7 +184,9 @@ export default function AnaliseGerencialPage() {
     } catch (e) {
       console.error('Erro ao carregar dados:', e);
     } finally {
-      setLoading(false);
+      if (seq === activeRequestSeq.current) {
+        setLoading(false);
+      }
     }
   }, [dataInicio, dataFim, secao, situacoes, diasMinimos]);
 
@@ -194,10 +195,8 @@ export default function AnaliseGerencialPage() {
   }, [loadData]);
 
   const handleLimparFiltros = () => {
-    const defaultInicio = data?.filtrosAplicados?.dataInicio || '2026-01-01';
-    const defaultFim = data?.filtrosAplicados?.dataFim || '2026-09-30';
-    setDataInicio(defaultInicio);
-    setDataFim(defaultFim);
+    setDataInicio('2026-01-01');
+    setDataFim('2026-09-30');
     setSecao('');
     setSecaoQuery('');
     setSituacoes(['TODOS']);
@@ -250,8 +249,8 @@ export default function AnaliseGerencialPage() {
     d.cid.toLowerCase().includes(searchFilter.toLowerCase())
   );
 
-  const activeDataInicio = dataInicio || data?.filtrosAplicados?.dataInicio || '';
-  const activeDataFim = dataFim || data?.filtrosAplicados?.dataFim || '';
+  const activeDataInicio = dataInicio;
+  const activeDataFim = dataFim;
 
   let periodoLabel = '';
   if (activeDataInicio && activeDataFim) {
@@ -363,7 +362,7 @@ export default function AnaliseGerencialPage() {
             onChange={e => {
               const val = e.target.value;
               setDataInicio(val);
-              if (val && dataFim && val > dataFim) {
+              if (val && val.length === 10 && dataFim && val > dataFim) {
                 setDataFim(val);
               }
             }}
@@ -380,7 +379,7 @@ export default function AnaliseGerencialPage() {
             onChange={e => {
               const val = e.target.value;
               setDataFim(val);
-              if (val && dataInicio && val < dataInicio) {
+              if (val && val.length === 10 && dataInicio && val < dataInicio) {
                 setDataInicio(val);
               }
             }}
@@ -512,8 +511,12 @@ export default function AnaliseGerencialPage() {
             Ano 2026
           </button>
 
-          {/* Bot\u00e3o "Limpar" s\u00f3 aparece quando h\u00e1 pelo menos 1 filtro ativo */}
-          {(dataInicio || dataFim || secao || diasMinimos !== 1 ||
+          {/* Botão "Limpar" só aparece quando há pelo menos 1 filtro ativo */}
+          {(
+            (dataInicio && dataInicio !== '2026-01-01') ||
+            (dataFim && dataFim !== '2026-09-30') ||
+            Boolean(secao) ||
+            diasMinimos !== 1 ||
             (situacoes.length > 0 && !situacoes.includes('TODOS') && !situacoes.includes('TODAS'))
           ) && (
             <button
