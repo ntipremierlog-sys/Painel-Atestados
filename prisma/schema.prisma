@@ -1,0 +1,110 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                 Int      @id @default(autoincrement())
+  username           String   @unique
+  password           String
+  nome               String?
+  role               String   @default("ADMIN")  // ADMIN | VIEWER
+  acesso_financeiro  Boolean  @default(false)
+  criado_em          DateTime @default(now())
+}
+
+model SecaoDePara {
+  id            Int                  @id @default(autoincrement())
+  secao_bruta   String               @unique
+  secao_padrao  String
+  criado_em     DateTime             @default(now())
+  atualizado_em DateTime             @updatedAt
+  colaboradores Colaborador[]
+  tarifas       TarifaFaturamento[]
+}
+
+model Colaborador {
+  id                 Int          @id @default(autoincrement())
+  cpf                String       @unique
+  nome               String
+  funcao             String?
+  secao_bruta_atual  String?
+  secao_padrao_id    Int?
+  secao_padrao       SecaoDePara? @relation(fields: [secao_padrao_id], references: [id])
+  data_admissao      DateTime?
+  data_demissao      DateTime?
+  situacao           String       @default("ATIVO")
+  salario_mensal     Float?
+  descricao_situacao String?
+  matricula          String?
+  nome_cargo         String?
+  atualizado_em      DateTime     @updatedAt
+  atestados          Atestado[]
+}
+
+model Atestado {
+  id              Int         @id @default(autoincrement())
+  colaborador_id  Int
+  colaborador     Colaborador @relation(fields: [colaborador_id], references: [id])
+  data_inicio     DateTime
+  data_fim        DateTime
+  data_retorno    DateTime
+  dias_afastado   Int
+  cid             String?
+  tipo_atestado   String?
+  mes_competencia String
+  observacoes     String?
+  criado_por      String?
+  criado_em       DateTime    @default(now())
+  atualizado_em   DateTime    @updatedAt
+}
+
+model ImportacaoLog {
+  id                        Int      @id @default(autoincrement())
+  arquivo_nome              String
+  mes_competencia           String?
+  data_importacao           DateTime @default(now())
+  linhas_processadas        Int
+  secoes_novas_encontradas  Int
+  colaboradores_inseridos   Int
+  colaboradores_atualizados Int
+  atestados_inseridos       Int      @default(0)
+  atestados_duplicados      Int      @default(0)
+  erros                     String?
+}
+
+model Cid10Referencia {
+  id            Int      @id @default(autoincrement())
+  codigo        String   @unique
+  descricao     String
+  grupo         String
+  criado_em     DateTime @default(now())
+  atualizado_em DateTime @updatedAt
+}
+
+model TarifaFaturamento {
+  id                Int          @id @default(autoincrement())
+  // Vinculo com unidade (null = tarifa global padrão)
+  secao_padrao_id   Int?
+  secao_padrao      SecaoDePara? @relation(fields: [secao_padrao_id], references: [id])
+  // Padrão de cargo (ex: "AUXILIAR OPERACIONAL", "SUPERVISOR", null = padrão da seção)
+  cargo_pattern     String?      // substring do campo funcao do colaborador
+  cargo_label       String?      // nome amigável para exibição
+  // Tarifas
+  valor_hora_diurno   Float
+  valor_hora_noturno  Float?
+  jornada_horas       Float    @default(8.0)
+  // Referência
+  contrato_ref      String?      // ex: "CTR 618/2025"
+  ativo             Boolean  @default(true)
+  observacoes       String?
+  criado_em         DateTime @default(now())
+  atualizado_em     DateTime @updatedAt
+}
