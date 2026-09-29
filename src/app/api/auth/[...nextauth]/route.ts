@@ -27,13 +27,23 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
-        const user = await prisma.user.findUnique({
-          where: { username: credentials.username },
+        const cleanUsername = credentials.username.trim();
+        const user = await prisma.user.findFirst({
+          where: {
+            username: {
+              equals: cleanUsername,
+              mode: 'insensitive',
+            },
+          },
         });
 
         if (!user) return null;
 
-        const passwordMatch = await bcrypt.compare(credentials.password, user.password);
+        let passwordMatch = await bcrypt.compare(credentials.password, user.password);
+        if (!passwordMatch && credentials.password !== credentials.password.trim()) {
+          passwordMatch = await bcrypt.compare(credentials.password.trim(), user.password);
+        }
+
         if (!passwordMatch) return null;
 
         return {
