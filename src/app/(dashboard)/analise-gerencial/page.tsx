@@ -77,6 +77,7 @@ export default function AnaliseGerencialPage() {
   // Filtros idênticos ao Dashboard
   const [dataInicio, setDataInicio] = useState('');
   const [dataFim, setDataFim] = useState('');
+  const hasInitializedDates = useRef(false);
   const [secao, setSecao] = useState('');
   const [secaoQuery, setSecaoQuery] = useState('');
   const [showSecaoDropdown, setShowSecaoDropdown] = useState(false);
@@ -171,11 +172,14 @@ export default function AnaliseGerencialPage() {
       const json = await res.json();
       setData(json);
 
-      if (!dataInicio && json.filtrosAplicados?.dataInicio) {
-        setDataInicio(json.filtrosAplicados.dataInicio);
-      }
-      if (!dataFim && json.filtrosAplicados?.dataFim) {
-        setDataFim(json.filtrosAplicados.dataFim);
+      if (!hasInitializedDates.current) {
+        if (json.filtrosAplicados?.dataInicio) {
+          setDataInicio(json.filtrosAplicados.dataInicio);
+        }
+        if (json.filtrosAplicados?.dataFim) {
+          setDataFim(json.filtrosAplicados.dataFim);
+        }
+        hasInitializedDates.current = true;
       }
 
       if (json.resumo) {
@@ -197,8 +201,10 @@ export default function AnaliseGerencialPage() {
   }, [loadData]);
 
   const handleLimparFiltros = () => {
-    setDataInicio('');
-    setDataFim('');
+    const defaultInicio = data?.filtrosAplicados?.dataInicio || '2026-01-01';
+    const defaultFim = data?.filtrosAplicados?.dataFim || '2026-09-30';
+    setDataInicio(defaultInicio);
+    setDataFim(defaultFim);
     setSecao('');
     setSecaoQuery('');
     setSituacoes(['TODOS']);
@@ -251,11 +257,11 @@ export default function AnaliseGerencialPage() {
     d.cid.toLowerCase().includes(searchFilter.toLowerCase())
   );
 
-  const activeDataInicio = dataInicio || data?.filtrosAplicados?.dataInicio || '2026-01-01';
-  const activeDataFim = dataFim || data?.filtrosAplicados?.dataFim || '2026-07-31';
+  const activeDataInicio = dataInicio || data?.filtrosAplicados?.dataInicio || '';
+  const activeDataFim = dataFim || data?.filtrosAplicados?.dataFim || '';
 
   let periodoLabel = '';
-  if (activeDataInicio) {
+  if (activeDataInicio && activeDataFim) {
     const dInicio = new Date(activeDataInicio + 'T12:00:00');
     const dFim = new Date(activeDataFim + 'T12:00:00');
     if (activeDataInicio === activeDataFim) {
@@ -263,6 +269,9 @@ export default function AnaliseGerencialPage() {
     } else {
       periodoLabel = `${format(dInicio, 'dd/MM/yyyy', { locale: ptBR })} até ${format(dFim, 'dd/MM/yyyy', { locale: ptBR })}`;
     }
+  } else if (activeDataInicio) {
+    const dInicio = new Date(activeDataInicio + 'T12:00:00');
+    periodoLabel = `A partir de ${format(dInicio, 'dd/MM/yyyy', { locale: ptBR })}`;
   }
 
   return (
@@ -357,8 +366,14 @@ export default function AnaliseGerencialPage() {
           <input
             type="date"
             className="input"
-            value={activeDataInicio}
-            onChange={e => setDataInicio(e.target.value)}
+            value={dataInicio}
+            onChange={e => {
+              const val = e.target.value;
+              setDataInicio(val);
+              if (val && dataFim && val > dataFim) {
+                setDataFim(val);
+              }
+            }}
           />
         </div>
 
@@ -367,9 +382,15 @@ export default function AnaliseGerencialPage() {
           <input
             type="date"
             className="input"
-            value={activeDataFim}
-            min={activeDataInicio}
-            onChange={e => setDataFim(e.target.value)}
+            value={dataFim}
+            min={dataInicio || undefined}
+            onChange={e => {
+              const val = e.target.value;
+              setDataFim(val);
+              if (val && dataInicio && val < dataInicio) {
+                setDataInicio(val);
+              }
+            }}
           />
         </div>
 

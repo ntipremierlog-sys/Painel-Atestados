@@ -355,6 +355,8 @@ export async function GET(request: NextRequest) {
     rankingColaboradores,
     cidCatalog,
     filtros: {
+      dataInicio: dataInicioStr,
+      dataFim: dataFimStr,
       secoes: secoesCadastradas.map(s => s.secao_padrao),
       mesesDisponiveis,
       situacoes,

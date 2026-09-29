@@ -289,12 +289,33 @@ export default function AtestadosPage() {
 
           <div className="input-group" style={{ width: '130px' }}>
             <label className="input-label">Data Inicial</label>
-            <input className="input" type="date" value={dataInicio} onChange={e => { setDataInicio(e.target.value); setPage(1); }} />
+            <input
+              className="input"
+              type="date"
+              value={dataInicio}
+              onChange={e => {
+                const val = e.target.value;
+                setDataInicio(val);
+                if (val && dataFim && val > dataFim) setDataFim(val);
+                setPage(1);
+              }}
+            />
           </div>
 
           <div className="input-group" style={{ width: '130px' }}>
             <label className="input-label">Data Final</label>
-            <input className="input" type="date" min={dataInicio} value={dataFim} onChange={e => { setDataFim(e.target.value); setPage(1); }} />
+            <input
+              className="input"
+              type="date"
+              min={dataInicio || undefined}
+              value={dataFim}
+              onChange={e => {
+                const val = e.target.value;
+                setDataFim(val);
+                if (val && dataInicio && val < dataInicio) setDataInicio(val);
+                setPage(1);
+              }}
+            />
           </div>
 
           <div className="input-group" ref={secaoRef} style={{ width: '220px', position: 'relative' }}>

@@ -38,6 +38,8 @@ interface DashboardData {
   rankingColaboradores: { id: number; nome: string; secao: string; totalAtestados: number; diasAfastado: number }[];
   cidCatalog?: Record<string, { codigo: string; descricao: string; grupo: string }>;
   filtros?: {
+    dataInicio?: string;
+    dataFim?: string;
     secoes: string[];
     mesesDisponiveis: string[];
     situacoes: string[];
@@ -96,6 +98,7 @@ const CustomTendenciaTooltip = ({ active, payload, label }: any) => {
 export default function DashboardPage() {
   const [dataInicio, setDataInicio] = useState('');
   const [dataFim, setDataFim] = useState('');
+  const hasInitializedDates = useRef(false);
   const [secao, setSecao] = useState('');
   const [situacoes, setSituacoes] = useState<string[]>(['TODOS']);
 
@@ -194,8 +197,11 @@ export default function DashboardPage() {
       })
       .then(d => {
         setData(d);
-        if (!dataInicio && d.dataInicioSelecionada) setDataInicio(d.dataInicioSelecionada);
-        if (!dataFim && d.dataFimSelecionada) setDataFim(d.dataFimSelecionada);
+        if (!hasInitializedDates.current) {
+          if (d.dataInicioSelecionada) setDataInicio(d.dataInicioSelecionada);
+          if (d.dataFimSelecionada) setDataFim(d.dataFimSelecionada);
+          hasInitializedDates.current = true;
+        }
         setLoading(false);
       })
       .catch(err => {
@@ -210,18 +216,20 @@ export default function DashboardPage() {
   }, [fetchDashboard]);
 
   const handleLimparFiltros = () => {
-    setDataInicio('');
-    setDataFim('');
+    const defaultInicio = data?.dataInicioSelecionada || data?.filtros?.dataInicio || '2026-01-01';
+    const defaultFim = data?.dataFimSelecionada || data?.filtros?.dataFim || '2026-09-30';
+    setDataInicio(defaultInicio);
+    setDataFim(defaultFim);
     setSecao('');
     setSecaoQuery('');
     setSituacoes(['TODOS']);
   };
 
-  const activeDataInicio = dataInicio || data?.dataInicioSelecionada || format(new Date(), 'yyyy-MM-dd');
-  const activeDataFim = dataFim || data?.dataFimSelecionada || activeDataInicio;
+  const activeDataInicio = dataInicio || data?.dataInicioSelecionada || '';
+  const activeDataFim = dataFim || data?.dataFimSelecionada || '';
 
   let periodoLabel = '';
-  if (activeDataInicio) {
+  if (activeDataInicio && activeDataFim) {
     const dInicio = new Date(activeDataInicio + 'T12:00:00');
     const dFim = new Date(activeDataFim + 'T12:00:00');
     if (activeDataInicio === activeDataFim) {
@@ -229,6 +237,9 @@ export default function DashboardPage() {
     } else {
       periodoLabel = `${format(dInicio, 'dd/MM/yyyy', { locale: ptBR })} até ${format(dFim, 'dd/MM/yyyy', { locale: ptBR })}`;
     }
+  } else if (activeDataInicio) {
+    const dInicio = new Date(activeDataInicio + 'T12:00:00');
+    periodoLabel = `A partir de ${format(dInicio, 'dd/MM/yyyy', { locale: ptBR })}`;
   }
 
   return (
@@ -272,8 +283,14 @@ export default function DashboardPage() {
             <input
               type="date"
               className="input"
-              value={activeDataInicio}
-              onChange={e => setDataInicio(e.target.value)}
+              value={dataInicio}
+              onChange={e => {
+                const val = e.target.value;
+                setDataInicio(val);
+                if (val && dataFim && val > dataFim) {
+                  setDataFim(val);
+                }
+              }}
             />
           </div>
 
@@ -282,9 +299,15 @@ export default function DashboardPage() {
             <input
               type="date"
               className="input"
-              value={activeDataFim}
-              min={activeDataInicio}
-              onChange={e => setDataFim(e.target.value)}
+              value={dataFim}
+              min={dataInicio || undefined}
+              onChange={e => {
+                const val = e.target.value;
+                setDataFim(val);
+                if (val && dataInicio && val < dataInicio) {
+                  setDataInicio(val);
+                }
+              }}
             />
           </div>
 
