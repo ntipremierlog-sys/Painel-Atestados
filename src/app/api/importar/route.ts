@@ -102,21 +102,31 @@ function parseDate(value: unknown): Date | null {
   // Número serial do Excel
   if (typeof value === 'number') {
     const date = XLSX.SSF.parse_date_code(value);
-    if (date) return new Date(date.y, date.m - 1, date.d);
+    if (date) return new Date(Date.UTC(date.y, date.m - 1, date.d, 12, 0, 0));
   }
   
   const str = String(value).trim();
-  if (!str || str === '0' || str === '') return null;
+  if (!str || str === '0' || str === '' || str === '-' || str.toLowerCase() === 'n/a') return null;
   
-  // Formato dd/mm/aaaa
-  const ddmmyyyy = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(str);
+  // Formato dd/mm/aaaa ou d/m/aa
+  const ddmmyyyy = /^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/.exec(str);
   if (ddmmyyyy) {
-    return new Date(parseInt(ddmmyyyy[3]), parseInt(ddmmyyyy[2]) - 1, parseInt(ddmmyyyy[1]));
+    let year = parseInt(ddmmyyyy[3]);
+    if (year < 100) year += 2000;
+    return new Date(Date.UTC(year, parseInt(ddmmyyyy[2]) - 1, parseInt(ddmmyyyy[1]), 12, 0, 0));
   }
   
-  // ISO
+  // Formato aaaa-mm-dd
+  const yyyymmdd = /^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/.exec(str);
+  if (yyyymmdd) {
+    return new Date(Date.UTC(parseInt(yyyymmdd[1]), parseInt(yyyymmdd[2]) - 1, parseInt(yyyymmdd[3]), 12, 0, 0));
+  }
+
+  // ISO string
   const isoDate = new Date(str);
-  if (!isNaN(isoDate.getTime())) return isoDate;
+  if (!isNaN(isoDate.getTime())) {
+    return new Date(Date.UTC(isoDate.getUTCFullYear(), isoDate.getUTCMonth(), isoDate.getUTCDate(), 12, 0, 0));
+  }
   
   return null;
 }
