@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef, Fragment } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { formatDisplayDate } from '@/lib/dateUtils';
 import { CidDetailModal } from '@/components/CidDetailModal';
 import { SituacaoMultiSelect } from '@/components/SituacaoMultiSelect';
 import {
@@ -88,15 +89,7 @@ export default function AnaliseGerencialPage() {
   const [inspectedCid, setInspectedCid] = useState<string | null>(null);
   const [expandedSecaoKey, setExpandedSecaoKey] = useState<string | null>(null);
 
-  function formatDateStr(isoStr: string | null) {
-    if (!isoStr) return '—';
-    try {
-      const d = new Date(isoStr);
-      return format(d, 'dd/MM/yyyy', { locale: ptBR });
-    } catch {
-      return String(isoStr);
-    }
-  }
+  const formatDateStr = formatDisplayDate;
 
   // Debounce para secaoQuery -> setSecao
   useEffect(() => {

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getAuth } from '@/lib/auth';
 import { parseSituacaoParam } from '@/lib/situacaoHelper';
+import { formatDisplayDate } from '@/lib/dateUtils';
 
 export const dynamic = 'force-dynamic';
 
@@ -179,7 +180,7 @@ export async function GET(request: NextRequest) {
         nome: colab.nome,
         cpf: colab.cpf,
         situacao: colab.situacao || 'ATIVO',
-        data_admissao: colab.data_admissao ? new Date(colab.data_admissao).toLocaleDateString('pt-BR') : '—',
+        data_admissao: colab.data_admissao ? formatDisplayDate(colab.data_admissao) : '—',
         mes_competencia: g.mes_competencia,
         qtd_atestados: g.qtd_atestados,
         total_dias: g.total_dias,
@@ -205,10 +206,10 @@ export async function GET(request: NextRequest) {
           nome: colab.nome,
           cpf: colab.cpf,
           situacao: colab.situacao || 'ATIVO',
-          data_admissao: colab.data_admissao ? new Date(colab.data_admissao).toLocaleDateString('pt-BR') : '—',
+          data_admissao: colab.data_admissao ? formatDisplayDate(colab.data_admissao) : '—',
           mes_competencia: atest.mes_competencia,
-          data_inicio: new Date(atest.data_inicio).toLocaleDateString('pt-BR'),
-          data_fim: new Date(atest.data_fim).toLocaleDateString('pt-BR'),
+          data_inicio: formatDisplayDate(atest.data_inicio),
+          data_fim: formatDisplayDate(atest.data_fim),
           dias_afastado: atest.dias_afastado,
           cid: cidValido || 'Não informado',
           tipo_atestado: atest.tipo_atestado || 'Médico',

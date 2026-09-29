@@ -3,10 +3,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Calendar, Briefcase, MapPin, FilePlus, Stethoscope } from 'lucide-react';
-import { format, parseISO } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 import { CidDetailModal } from '@/components/CidDetailModal';
 import { SituacaoBadge } from '@/components/SituacaoMultiSelect';
+import { formatDisplayDate } from '@/lib/dateUtils';
 
 interface Colaborador {
   id: number;
@@ -35,12 +34,7 @@ function formatCPF(cpf: string) {
 }
 
 function formatDate(iso: string | null) {
-  if (!iso) return '—';
-  try {
-    return format(parseISO(iso), 'dd/MM/yyyy', { locale: ptBR });
-  } catch {
-    return '—';
-  }
+  return formatDisplayDate(iso);
 }
 
 export default function ColaboradorDetalhePage() {

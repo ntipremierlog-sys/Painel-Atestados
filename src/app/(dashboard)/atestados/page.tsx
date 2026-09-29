@@ -1,8 +1,6 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { format, parseISO } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 import { Search, Trash2, Edit2, FileText, Download, X, AlertTriangle, Stethoscope } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { CidDetailModal } from '@/components/CidDetailModal';
@@ -25,10 +23,9 @@ interface Atestado {
   };
 }
 
-function formatDate(iso: string | null) {
-  if (!iso) return '—';
-  try { return format(parseISO(iso), 'dd/MM/yyyy', { locale: ptBR }); } catch { return '—'; }
-}
+import { formatDisplayDate } from '@/lib/dateUtils';
+
+const formatDate = formatDisplayDate;
 
 // Modal de confirmação elegante
 function ConfirmModal({

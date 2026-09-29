@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import ExcelJS from 'exceljs';
+import { formatDisplayDate } from './dateUtils';
 
 // ==================== CORES PREMIER LOGISTICS ====================
 // Paleta oficial alinhada com globals.css da plataforma
@@ -84,11 +85,7 @@ interface AtestadoExport {
 // ==================== HELPERS ====================
 
 function formatDate(iso: string | null) {
-  if (!iso) return '—';
-  try {
-    const d = new Date(iso);
-    return d.toLocaleDateString('pt-BR');
-  } catch { return '—'; }
+  return formatDisplayDate(iso);
 }
 
 function formatCPF(cpf: string) {
