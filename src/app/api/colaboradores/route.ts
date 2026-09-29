@@ -17,24 +17,36 @@ export async function GET(request: NextRequest) {
   const autocomplete = searchParams.get('autocomplete') === 'true';
 
   const where: Record<string, unknown> = {};
+  const conditions: Record<string, unknown>[] = [];
 
   if (search.trim()) {
     const searchConditions = buildColaboradorSearchConditions(search);
     if (searchConditions.length > 0) {
-      where.OR = searchConditions;
+      conditions.push({ OR: searchConditions });
     }
   }
 
   if (secao.trim()) {
-    where.secao_padrao = { secao_padrao: { contains: secao.trim(), mode: 'insensitive' } };
+    conditions.push({
+      OR: [
+        { secao_padrao: { secao_padrao: { contains: secao.trim(), mode: 'insensitive' } } },
+        { secao_bruta_atual: { contains: secao.trim(), mode: 'insensitive' } },
+      ],
+    });
   }
 
   if (filterActive && situacoes.length > 0) {
     if (situacoes.length === 1) {
-      where.situacao = situacoes[0];
+      conditions.push({ situacao: situacoes[0] });
     } else {
-      where.situacao = { in: situacoes };
+      conditions.push({ situacao: { in: situacoes } });
     }
+  }
+
+  if (conditions.length === 1) {
+    Object.assign(where, conditions[0]);
+  } else if (conditions.length > 1) {
+    where.AND = conditions;
   }
 
   if (autocomplete) {

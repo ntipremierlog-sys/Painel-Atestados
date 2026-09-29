@@ -45,31 +45,38 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // Combined Colaborador filter (search + secao)
-  const colabWhere: Record<string, unknown> = {};
+  // Combined Colaborador filter (search + secao + situacao)
+  const colabConditions: Record<string, unknown>[] = [];
+
   if (search.trim()) {
     const searchConditions = buildColaboradorSearchConditions(search);
     if (searchConditions.length > 0) {
-      colabWhere.OR = searchConditions;
+      colabConditions.push({ OR: searchConditions });
     }
   }
 
   if (secao.trim()) {
-    colabWhere.secao_padrao = { secao_padrao: { contains: secao.trim(), mode: 'insensitive' } };
+    colabConditions.push({
+      OR: [
+        { secao_padrao: { secao_padrao: { contains: secao.trim(), mode: 'insensitive' } } },
+        { secao_bruta_atual: { contains: secao.trim(), mode: 'insensitive' } },
+      ],
+    });
   }
-
 
   const { filterActive, situacoes } = parseSituacaoParam(searchParams.get('situacao'));
   if (filterActive && situacoes.length > 0) {
     if (situacoes.length === 1) {
-      colabWhere.situacao = situacoes[0];
+      colabConditions.push({ situacao: situacoes[0] });
     } else {
-      colabWhere.situacao = { in: situacoes };
+      colabConditions.push({ situacao: { in: situacoes } });
     }
   }
 
-  if (Object.keys(colabWhere).length > 0) {
-    where.colaborador = colabWhere;
+  if (colabConditions.length === 1) {
+    where.colaborador = colabConditions[0];
+  } else if (colabConditions.length > 1) {
+    where.colaborador = { AND: colabConditions };
   }
 
   const [total, atestados] = await Promise.all([
